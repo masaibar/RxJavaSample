@@ -10,8 +10,10 @@ import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import io.reactivex.Observable
+import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
 import io.reactivex.rxkotlin.subscribeBy
+import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.activity_async_sample.*
 import java.util.*
 
@@ -46,6 +48,8 @@ class AsyncSampleActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         disposable = naiveObserveSensor(sensorManager, accelerometer)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
                 .subscribeBy(
                         onError = { text_accelerometer.text = it.message },
                         onComplete = { Log.d(TAG, "onComplete called.") },
