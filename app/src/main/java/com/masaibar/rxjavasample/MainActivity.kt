@@ -13,5 +13,9 @@ class MainActivity : AppCompatActivity() {
         button_sync_sample.setOnClickListener {
             SyncSampleActivity.start(applicationContext)
         }
+
+        button_async_sample.setOnClickListener {
+            AsyncSampleActivity.start(applicationContext)
+        }
     }
 }
