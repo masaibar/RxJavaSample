@@ -16,7 +16,7 @@ class SyncSampleActivity : AppCompatActivity() {
 
     companion object {
 
-        const val TAG = "SyncSampleActivity"
+        private const val TAG = "SyncSampleActivity"
 
         fun start(context: Context) {
             val intent = Intent(context, SyncSampleActivity::class.java).apply {
