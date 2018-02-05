@@ -11,7 +11,7 @@ import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import io.reactivex.Observable
 import io.reactivex.disposables.Disposable
-import io.reactivex.observers.DisposableObserver
+import io.reactivex.rxkotlin.subscribeBy
 import kotlinx.android.synthetic.main.activity_async_sample.*
 import java.util.*
 
@@ -46,21 +46,14 @@ class AsyncSampleActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         disposable = naiveObserveSensor(sensorManager, accelerometer)
-                .subscribeWith(object : DisposableObserver<SensorEvent>() {
-                    override fun onComplete() {
-                        Log.d(TAG, "onComplete() called.")
-                    }
-
-                    override fun onNext(t: SensorEvent) {
-                        val result = Arrays.toString(t.values)
-                        Log.d(TAG, "onNext() called. $result)}")
-                        text_accelerometer.text = result
-                    }
-
-                    override fun onError(e: Throwable) {
-                        text_accelerometer.text = e.message
-                    }
-                })
+                .subscribeBy(
+                        onError = { text_accelerometer.text = it.message },
+                        onComplete = { Log.d(TAG, "onComplete called.") },
+                        onNext = {
+                            val result = Arrays.toString(it.values)
+                            text_accelerometer.text = result
+                        }
+                )
     }
 
     override fun onPause() {

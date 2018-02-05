@@ -8,7 +8,7 @@ import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import io.reactivex.Single
 import io.reactivex.android.schedulers.AndroidSchedulers
-import io.reactivex.observers.DisposableSingleObserver
+import io.reactivex.rxkotlin.subscribeBy
 import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.activity_sync_sample.*
 
@@ -39,19 +39,15 @@ class SyncSampleActivity : AppCompatActivity() {
         saveSingle()
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(object : DisposableSingleObserver<Boolean>() {
-                    override fun onSuccess(t: Boolean) {
-                        Log.d(TAG, "result = $t")
-
-                        if (t) {
-                            text_saved.text = getPref().getString(TAG, "null")
+                .subscribeBy(
+                        onError = { text_saved.text = it.message },
+                        onSuccess = {
+                            Log.d(TAG, "result = $it")
+                            if (it) {
+                                text_saved.text = getPref().getString(TAG, "null")
+                            }
                         }
-                    }
-
-                    override fun onError(e: Throwable) {
-                        text_saved.text = e.message
-                    }
-                })
+                )
     }
 
     private fun saveSingle(): Single<Boolean> {
