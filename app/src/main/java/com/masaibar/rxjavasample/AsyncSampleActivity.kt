@@ -6,9 +6,12 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
-import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
+import android.support.v7.app.AppCompatActivity
 import android.util.Log
+import io.reactivex.Observable
+import io.reactivex.disposables.Disposable
+import io.reactivex.observers.DisposableObserver
 import kotlinx.android.synthetic.main.activity_async_sample.*
 import java.util.*
 
@@ -33,23 +36,7 @@ class AsyncSampleActivity : AppCompatActivity() {
         sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
     }
 
-    private val sensorEventListener = object : SensorEventListener {
-        override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
-            Log.d(
-                    TAG,
-                    "onAccuracyChanged() - sensor: ${sensor?.name}"
-            )
-        }
-
-        override fun onSensorChanged(event: SensorEvent?) {
-            Log.d(
-                    TAG,
-                    "onSensorChanged() - time: ${event?.timestamp}," +
-                            " values: ${Arrays.toString(event?.values)}"
-            )
-            text_accelerometer.text = Arrays.toString(event?.values)
-        }
-    }
+    private var disposable: Disposable? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,15 +45,56 @@ class AsyncSampleActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        sensorManager.registerListener(
-                sensorEventListener,
-                accelerometer,
-                SensorManager.SENSOR_DELAY_NORMAL
-        )
+        disposable = naiveObserveSensor(sensorManager, accelerometer)
+                .subscribeWith(object : DisposableObserver<SensorEvent>() {
+                    override fun onComplete() {
+                        Log.d(TAG, "onComplete() called.")
+                    }
+
+                    override fun onNext(t: SensorEvent) {
+                        val result = Arrays.toString(t.values)
+                        Log.d(TAG, "onNext() called. $result)}")
+                        text_accelerometer.text = result
+                    }
+
+                    override fun onError(e: Throwable) {
+                        text_accelerometer.text = e.message
+                    }
+                })
     }
 
     override fun onPause() {
         super.onPause()
-        sensorManager.unregisterListener(sensorEventListener)
+        disposable?.dispose()
+    }
+
+    private fun naiveObserveSensor(
+            sensorManager: SensorManager, sensor: Sensor): Observable<SensorEvent> {
+
+        return Observable.create { emitter ->
+            val sensorEventListener = object : SensorEventListener {
+                override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
+                    //ignore
+                }
+
+                override fun onSensorChanged(event: SensorEvent?) {
+                    event?.let {
+                        emitter.onNext(it)
+                    }
+                }
+            }
+
+            emitter.setCancellable {
+                Log.d(TAG, "dispose() called.")
+                sensorManager.unregisterListener(sensorEventListener)
+            }
+
+            sensorManager.registerListener(
+                    sensorEventListener,
+                    sensor,
+                    SensorManager.SENSOR_DELAY_NORMAL
+            )
+        }
+
     }
 }
